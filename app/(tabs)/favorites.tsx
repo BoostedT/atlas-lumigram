@@ -49,11 +49,6 @@ export default function FavoritesScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerText}>Favorites</Text>
-        <Ionicons name="exit-outline" size={24} color="#4CD4B0" />
-      </View>
 
       {/* Scrollable list */}
       <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -84,19 +79,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#f9f9f9",
-    paddingTop: 60,
     alignItems: "center",
-  },
-  header: {
-    width: "90%",
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 20,
-  },
-  headerText: {
-    fontSize: 22,
-    fontWeight: "600",
   },
   scrollContent: {
     alignItems: "center",

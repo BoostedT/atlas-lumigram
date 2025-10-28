@@ -36,11 +36,6 @@ export default function ProfileScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerText}>Profile</Text>
-        <Ionicons name="exit-outline" size={24} color="#4CD4B0" />
-      </View>
 
       {/* Profile Section */}
       <View style={styles.profileSection}>
@@ -69,18 +64,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#f9f9f9",
     alignItems: "center",
-    paddingTop: 60,
-  },
-  header: {
-    width: "90%",
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 20,
-  },
-  headerText: {
-    fontSize: 22,
-    fontWeight: "600",
   },
   profileSection: {
     width: "100%",

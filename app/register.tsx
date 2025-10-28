@@ -1,14 +1,22 @@
-import React, { useState } from 'react';
+import React, { use, useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useAuth } from '@/components/AuthProvider';
 
 export default function RegisterScreen() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const auth = useAuth();
 
-  function handleRegister() {
-    router.replace('/(tabs)');
+  async function handleRegister() {
+    alert(`Registering user with ${email} and ${password}`);
+    try {
+      await auth.register(email, password);
+      router.replace('/(tabs)');
+    } catch (error) {
+      alert('Unable to register. Please try again.');
+    }
   }
 
   return (

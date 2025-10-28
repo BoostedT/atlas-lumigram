@@ -10,8 +10,11 @@ import {
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 
-export default function EditProfileScreen({ navigation }: any) {
+
+export default function EditProfileScreen() {
+  const router = useRouter();
   const [username, setUsername] = useState("pink-flowers23131");
   const [profileImage, setProfileImage] = useState(
     "https://picsum.photos/id/102/200/200"
@@ -37,10 +40,12 @@ export default function EditProfileScreen({ navigation }: any) {
   };
 
   const handleSave = () => {
-    // This would normally update global state or database
     console.log("Updated:", { username, profileImage });
     Alert.alert("Profile Saved", "Your profile has been updated!");
-    navigation.goBack();
+    router.replace({
+      pathname: "/(tabs)/profile",
+      params: { username, profileImage },
+    });
   };
 
   return (

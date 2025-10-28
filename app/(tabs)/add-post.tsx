@@ -51,13 +51,7 @@ export default function AddPostScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerText}>Add Post</Text>
-        <Ionicons name="exit-outline" size={24} color="#4CD4B0" />
-      </View>
-
-      {/* Image Picker */}
+     {/* Image Picker */}
       <TouchableOpacity style={styles.imageBox} onPress={pickImage}>
         {image ? (
           <Image source={{ uri: image }} style={styles.image} />
@@ -93,7 +87,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#f9f9f9",
     alignItems: "center",
-    paddingTop: 60,
+    paddingTop: 40,
   },
   header: {
     width: "90%",

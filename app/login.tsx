@@ -1,14 +1,21 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useAuth } from '@/components/AuthProvider';
 
 export default function LoginScreen() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const auth = useAuth();
 
-  function handleLogin() {
-    router.replace('/(tabs)');
+  async function handleLogin() {
+    try {
+      await auth.login(email, password);
+      router.replace('/(tabs)');
+    } catch (error) {
+      alert('Email or password is incorrect. Please try again.');
+    }
   }
 
   return (

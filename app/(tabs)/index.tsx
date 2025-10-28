@@ -5,10 +5,12 @@ import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { homeFeed } from "@/placeholder";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import { useAuth } from "@/components/AuthProvider";
 
 export default function HomeScreen() {
   const router = useRouter();
   const [activeCaption, setActiveCaption] = useState<string | null>(null);
+  const auth = useAuth();
 
   const renderItem = ({ item }: any) => {
     const doubleTap = Gesture.Tap()
@@ -38,24 +40,12 @@ export default function HomeScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerText}>Home Feed</Text>
-        <Ionicons
-          name="exit-outline"
-          size={28}
-          color="#2BC5B4"
-          onPress={() => router.replace("/login")}
-        />
-      </View>
-
       <FlashList
         data={homeFeed}
         renderItem={renderItem}
         keyExtractor={(item) => item.id}
         estimatedItemSize={400}
       />
-    </View>
   );
 }
 

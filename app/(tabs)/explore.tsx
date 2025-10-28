@@ -52,12 +52,6 @@ export default function SearchScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerText}>Search</Text>
-        <Ionicons name="exit-outline" size={24} color="#4CD4B0" />
-      </View>
-
       {/* Search Input */}
       <TextInput
         style={styles.input}
@@ -93,7 +87,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#f9f9f9",
-    paddingTop: 60,
+    paddingTop: 30,
   },
   header: {
     width: "90%",
