@@ -23,7 +23,7 @@ export default function TabsLayout() {
         tabBarInactiveTintColor: "#999",
         headerRight: () => (
           <TouchableOpacity onPress={handleLogout} style={{ marginRight: 16 }}>
-            <Ionicons name="log-out-outline" size={24} color="#000" />
+            <Ionicons name="log-out-outline" size={24} color="#2bc5b4" />
           </TouchableOpacity>
         ),
       }}

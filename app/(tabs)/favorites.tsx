@@ -1,106 +1,178 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
   Image,
   StyleSheet,
-  ScrollView,
-  Alert,
-  TouchableWithoutFeedback,
+  RefreshControl,
+  ActivityIndicator,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-
-// --- Placeholder image data (placeholder.tsx equivalent) ---
-const placeholderImages = [
-  {
-    id: 1,
-    uri: "https://picsum.photos/id/1018/800/600",
-    caption: "Waterfall in Iceland",
-  },
-  {
-    id: 2,
-    uri: "https://picsum.photos/id/1025/800/600",
-    caption: "Beautiful Golden Retriever",
-  },
-  {
-    id: 3,
-    uri: "https://picsum.photos/id/1043/800/600",
-    caption: "Mountain view with snow",
-  },
-  {
-    id: 4,
-    uri: "https://picsum.photos/id/1041/800/600",
-    caption: "Forest with fog",
-  },
-];
+import { FlashList } from "@shopify/flash-list";
+import {
+  collection,
+  query,
+  orderBy,
+  limit,
+  getDocs,
+  startAfter,
+} from "firebase/firestore";
+import { db } from "@/firebaseConfig";
+import { useAuth } from "@/components/AuthProvider";
 
 export default function FavoritesScreen() {
-  const [showCaption, setShowCaption] = useState(null);
+  const { user } = useAuth();
+  const [favorites, setFavorites] = useState<any[]>([]);
+  const [lastVisible, setLastVisible] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [activeCaption, setActiveCaption] = useState<string | null>(null);
 
-  // Handle double tap
-  const handleDoubleTap = (caption) => {
-    Alert.alert("Favorited!", `You double-tapped: ${caption}`);
+  const PAGE_SIZE = 10;
+
+  // 🔹 Load first batch of favorites
+  const loadFavorites = useCallback(async () => {
+    if (!user) return;
+    setLoading(true);
+    try {
+      const q = query(
+        collection(db, "favorites", user.uid, "posts"),
+        orderBy("createdAt", "desc"),
+        limit(PAGE_SIZE)
+      );
+      const snapshot = await getDocs(q);
+      if (!snapshot.empty) {
+        const fetched = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setFavorites(fetched);
+        setLastVisible(snapshot.docs[snapshot.docs.length - 1]);
+        setHasMore(snapshot.docs.length >= PAGE_SIZE);
+      } else {
+        setFavorites([]);
+        setHasMore(false);
+      }
+    } catch (err) {
+      console.error("Error loading favorites:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, [user]);
+
+  // 🔹 Load more (pagination)
+  const loadMore = async () => {
+    if (loading || !hasMore || !lastVisible || !user) return;
+    setLoading(true);
+    try {
+      const q = query(
+        collection(db, "favorites", user.uid, "posts"),
+        orderBy("createdAt", "desc"),
+        startAfter(lastVisible),
+        limit(PAGE_SIZE)
+      );
+      const snapshot = await getDocs(q);
+      if (!snapshot.empty) {
+        const fetched = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setFavorites((prev) => [...prev, ...fetched]);
+        setLastVisible(snapshot.docs[snapshot.docs.length - 1]);
+        setHasMore(snapshot.docs.length >= PAGE_SIZE);
+      } else {
+        setHasMore(false);
+      }
+    } catch (err) {
+      console.error("Error loading more favorites:", err);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // Handle long press
-  const handleLongPress = (id) => {
-    setShowCaption(showCaption === id ? null : id);
+  // 🔹 Pull-to-refresh
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await loadFavorites();
+    setRefreshing(false);
   };
+
+  useEffect(() => {
+    loadFavorites();
+  }, [user]);
+
+  if (!user) {
+    return (
+      <View style={styles.center}>
+        <Text>Please log in to view favorites.</Text>
+      </View>
+    );
+  }
+
+  if (loading && favorites.length === 0) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator size="large" color="#4CD4B0" />
+      </View>
+    );
+  }
+
+  if (!loading && favorites.length === 0) {
+    return (
+      <View style={styles.center}>
+        <Text style={styles.emptyText}>No favorites yet 💔</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
-
-      {/* Scrollable list */}
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        {placeholderImages.map((item) => (
-          <TouchableWithoutFeedback
-            key={item.id}
-            onLongPress={() => handleLongPress(item.id)}
-            delayLongPress={300}
-            onPress={() => handleDoubleTap(item.caption)}
+      <FlashList
+        data={favorites}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => (
+          <View
+            style={styles.imageContainer}
+            onTouchStart={() =>
+              setActiveCaption(activeCaption === item.id ? null : item.id)
+            }
           >
-            <View style={styles.imageContainer}>
-              <Image source={{ uri: item.uri }} style={styles.image} />
-              {showCaption === item.id && (
-                <View style={styles.captionOverlay}>
-                  <Text style={styles.captionText}>{item.caption}</Text>
-                </View>
-              )}
-            </View>
-          </TouchableWithoutFeedback>
-        ))}
-      </ScrollView>
+            <Image source={{ uri: item.imageUrl }} style={styles.image} />
+            {activeCaption === item.id && (
+              <View style={styles.captionOverlay}>
+                <Text style={styles.captionText}>{item.caption}</Text>
+              </View>
+            )}
+          </View>
+        )}
+        estimatedItemSize={400}
+        onEndReached={loadMore}
+        onEndReachedThreshold={0.3}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+        ListFooterComponent={
+          loading && favorites.length > 0 ? (
+            <ActivityIndicator style={{ marginVertical: 16 }} color="#4CD4B0" />
+          ) : null
+        }
+      />
     </View>
   );
 }
 
-// --- Styles ---
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#f9f9f9",
-    alignItems: "center",
-  },
-  scrollContent: {
-    alignItems: "center",
-    paddingBottom: 50,
-  },
+  container: { flex: 1, backgroundColor: "#f9f9f9" },
   imageContainer: {
-    width: "90%",
+    marginBottom: 10,
     borderRadius: 20,
     overflow: "hidden",
-    marginBottom: 20,
+    marginHorizontal: 5,
     backgroundColor: "#fff",
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 6,
-    elevation: 3,
   },
   image: {
     width: "100%",
     height: 300,
-    borderRadius: 20,
   },
   captionOverlay: {
     position: "absolute",
@@ -115,5 +187,14 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 16,
     fontWeight: "500",
+  },
+  center: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  emptyText: {
+    color: "#777",
+    fontSize: 16,
   },
 });
