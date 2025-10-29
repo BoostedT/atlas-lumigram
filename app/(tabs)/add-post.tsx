@@ -10,10 +10,15 @@ import {
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { Ionicons } from "@expo/vector-icons";
+import storage from "@/lib/storage";
+import firestore from "@/lib/firestore";
+import { useAuth } from "@/components/AuthProvider";
+
 
 export default function AddPostScreen() {
   const [image, setImage] = useState(null);
   const [caption, setCaption] = useState("");
+  const auth = useAuth();
 
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -34,15 +39,21 @@ export default function AddPostScreen() {
     }
   };
 
-  const handleSave = () => {
-    if (!image) {
-      Alert.alert("Missing Image", "Please select an image to post.");
-      return;
-    }
-    Alert.alert("Post Saved", `Caption: ${caption || "No caption"}`);
-    setImage(null);
-    setCaption("");
-  };
+  async function handleSave() {
+    if (!image) return;
+    const name = image?.split("/").pop() as string;
+    const {downloadUrl, metadata} = await storage.upload(image, name);
+    console.log(downloadUrl);
+
+    firestore.addPost({
+      caption,
+      imageUrl: downloadUrl,
+      createdAt: new Date(),
+      createdBy: auth.user?.uid!!,
+    });
+
+    Alert.alert("Post Saved", "Your post has been saved successfully!");
+  }
 
   const handleReset = () => {
     setImage(null);
