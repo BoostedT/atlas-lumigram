@@ -2,130 +2,128 @@ import React, { useState } from "react";
 import {
   View,
   Text,
-  Image,
   TextInput,
+  Image,
   TouchableOpacity,
   StyleSheet,
   Alert,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
-import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-
+import { useAuth } from "@/components/AuthProvider";
+import { db } from "@/firebaseConfig";
+import { doc, setDoc } from "firebase/firestore";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 export default function EditProfileScreen() {
+  const { user } = useAuth();
   const router = useRouter();
-  const [username, setUsername] = useState("pink-flowers23131");
-  const [profileImage, setProfileImage] = useState(
-    "https://picsum.photos/id/102/200/200"
-  );
+  const [username, setUsername] = useState("");
+  const [profileImage, setProfileImage] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
 
   const pickImage = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== "granted") {
-      Alert.alert("Permission needed", "Please allow photo access.");
-      return;
-    }
-
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [1, 1],
-      quality: 1,
+      quality: 0.8,
     });
-
     if (!result.canceled) {
       setProfileImage(result.assets[0].uri);
     }
   };
 
-  const handleSave = () => {
-    console.log("Updated:", { username, profileImage });
-    Alert.alert("Profile Saved", "Your profile has been updated!");
-    router.replace({
-      pathname: "/(tabs)/profile",
-      params: { username, profileImage },
-    });
+  const saveProfile = async () => {
+    if (!user) return;
+    setUploading(true);
+    try {
+      let imageUrl = null;
+      if (profileImage) {
+        const storage = getStorage();
+        const storageRef = ref(storage, `profileImages/${user.uid}.jpg`);
+        const response = await fetch(profileImage);
+        const blob = await response.blob();
+        await uploadBytes(storageRef, blob);
+        imageUrl = await getDownloadURL(storageRef);
+      }
+
+      await setDoc(
+        doc(db, "users", user.uid),
+        {
+          username: username || user.email.split("@")[0],
+          profileImage: imageUrl,
+        },
+        { merge: true }
+      );
+
+      Alert.alert("Profile Updated!", "Your changes have been saved.");
+      router.back();
+    } catch (err) {
+      console.error("Error updating profile:", err);
+      Alert.alert("Error", "Failed to update profile.");
+    } finally {
+      setUploading(false);
+    }
   };
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerText}>Edit Profile</Text>
-        <Ionicons name="exit-outline" size={24} color="#4CD4B0" />
-      </View>
-
-      {/* Profile Image */}
       <TouchableOpacity onPress={pickImage} style={styles.imageContainer}>
-        <Image source={{ uri: profileImage }} style={styles.profileImage} />
+        {profileImage ? (
+          <Image source={{ uri: profileImage }} style={styles.image} />
+        ) : (
+          <Text style={styles.placeholderText}>Tap to select image</Text>
+        )}
       </TouchableOpacity>
 
-      {/* Username Input */}
       <TextInput
         style={styles.input}
+        placeholder="Enter new username"
         value={username}
         onChangeText={setUsername}
-        placeholder="Enter username"
       />
 
-      {/* Save Button */}
-      <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-        <Text style={styles.saveText}>Save profile</Text>
+      <TouchableOpacity
+        style={styles.saveButton}
+        onPress={saveProfile}
+        disabled={uploading}
+      >
+        <Text style={styles.saveText}>
+          {uploading ? "Saving..." : "Save Changes"}
+        </Text>
       </TouchableOpacity>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#f9f9f9",
-    alignItems: "center",
-    paddingTop: 60,
-  },
-  header: {
-    width: "90%",
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 30,
-  },
-  headerText: {
-    fontSize: 22,
-    fontWeight: "600",
-  },
+  container: { flex: 1, backgroundColor: "#f9f9f9", alignItems: "center", paddingTop: 40 },
   imageContainer: {
-    backgroundColor: "#ededed",
-    borderRadius: 100,
-    padding: 5,
-    marginBottom: 30,
-  },
-  profileImage: {
     width: 120,
     height: 120,
     borderRadius: 60,
+    backgroundColor: "#eee",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 20,
   },
+  image: { width: 120, height: 120, borderRadius: 60 },
+  placeholderText: { color: "#888" },
   input: {
-    width: "85%",
-    borderColor: "#4CD4B0",
+    width: "80%",
     borderWidth: 1,
+    borderColor: "#4CD4B0",
     borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    marginBottom: 30,
+    padding: 10,
+    marginBottom: 20,
     backgroundColor: "#fff",
   },
   saveButton: {
-    width: "85%",
     backgroundColor: "#4CD4B0",
-    borderRadius: 10,
-    paddingVertical: 14,
-    alignItems: "center",
+    paddingVertical: 12,
+    paddingHorizontal: 40,
+    borderRadius: 8,
   },
-  saveText: {
-    color: "#fff",
-    fontSize: 18,
-    fontWeight: "600",
-  },
+  saveText: { color: "#fff", fontWeight: "600", fontSize: 16 },
 });

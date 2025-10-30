@@ -4,43 +4,40 @@ import {
   Text,
   Image,
   StyleSheet,
-  TouchableOpacity,
   FlatList,
   ActivityIndicator,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams } from "expo-router";
 import {
   collection,
   query,
   where,
-  getDocs,
-  doc,
   onSnapshot,
+  doc,
+  orderBy,
 } from "firebase/firestore";
 import { db } from "@/firebaseConfig";
 import { useAuth } from "@/components/AuthProvider";
 
-export default function ProfileScreen() {
+export default function UserProfileScreen() {
+  const { id } = useLocalSearchParams();
   const { user } = useAuth();
-  const router = useRouter();
-  const [posts, setPosts] = useState<any[]>([]);
   const [profileData, setProfileData] = useState<any>(null);
+  const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user) return;
+    if (!id) return;
 
-    const unsubProfile = onSnapshot(doc(db, "users", user.uid), (snapshot) => {
-      if (snapshot.exists()) {
-        setProfileData(snapshot.data());
-      } else {
-        setProfileData({ username: "New User" });
-      }
+    const unsubProfile = onSnapshot(doc(db, "users", id), (snapshot) => {
+      if (snapshot.exists()) setProfileData(snapshot.data());
+      else setProfileData({ username: "Unknown User" });
     });
 
     const q = query(
       collection(db, "posts"),
-      where("createdBy", "==", user.uid)
+      where("createdBy", "==", id),
+      orderBy("createdAt", "desc")
     );
 
     const unsubPosts = onSnapshot(q, (snapshot) => {
@@ -56,24 +53,14 @@ export default function ProfileScreen() {
       unsubProfile();
       unsubPosts();
     };
-  }, [user]);
+  }, [id]);
 
-  
-  if (!user) {
-    return (
-      <View style={styles.center}>
-        <Text>Please log in to view your profile.</Text>
-      </View>
-    );
-  }
-
-  if (loading) {
+  if (loading)
     return (
       <View style={styles.center}>
         <ActivityIndicator size="large" color="#4CD4B0" />
       </View>
     );
-  }
 
   return (
     <View style={styles.container}>
@@ -87,17 +74,14 @@ export default function ProfileScreen() {
           }}
           style={styles.profileImage}
         />
-        <Text style={styles.username}>{profileData?.username || "New User"}</Text>
+        <Text style={styles.username}>{profileData?.username}</Text>
 
-        <TouchableOpacity
-          style={styles.editButton}
-          onPress={() => router.push("/edit-profile")}
-        >
-          <Text style={styles.editText}>Edit Profile</Text>
-        </TouchableOpacity>
+        {id === user?.uid && (
+          <Text style={styles.ownerTag}>Your profile</Text>
+        )}
       </View>
 
-      {/* Grid of Posts */}
+      {/* Posts grid */}
       <FlatList
         data={posts}
         numColumns={3}
@@ -105,9 +89,7 @@ export default function ProfileScreen() {
         renderItem={({ item }) => (
           <Image source={{ uri: item.imageUrl }} style={styles.postImage} />
         )}
-        ListEmptyComponent={
-          <Text style={styles.emptyText}>No posts yet 😅</Text>
-        }
+        ListEmptyComponent={<Text style={styles.emptyText}>No posts yet 😅</Text>}
       />
     </View>
   );
@@ -122,34 +104,19 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderColor: "#ddd",
   },
-  profileImage: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    marginBottom: 10,
+  profileImage: { width: 100, height: 100, borderRadius: 50, marginBottom: 10 },
+  username: { fontSize: 20, fontWeight: "600" },
+  ownerTag: {
+    color: "#4CD4B0",
+    fontWeight: "500",
+    marginTop: 6,
   },
-  username: {
-    fontSize: 20,
-    fontWeight: "600",
-  },
-  editButton: {
-    backgroundColor: "#4CD4B0",
-    paddingVertical: 8,
-    paddingHorizontal: 20,
-    borderRadius: 6,
-    marginTop: 10,
-  },
-  editText: { color: "#fff", fontWeight: "500" },
   postImage: {
     width: "33%",
     height: 120,
     borderWidth: 1,
     borderColor: "#eee",
   },
-  center: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
   emptyText: { textAlign: "center", marginTop: 20, color: "#777" },
+  center: { flex: 1, justifyContent: "center", alignItems: "center" },
 });

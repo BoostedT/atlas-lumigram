@@ -1,4 +1,4 @@
-import React, { use, useState } from 'react';
+import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/components/AuthProvider';
@@ -10,12 +10,13 @@ export default function RegisterScreen() {
   const auth = useAuth();
 
   async function handleRegister() {
-    alert(`Registering user with ${email} and ${password}`);
+    alert(`Registering user with ${email}`);
     try {
       await auth.register(email, password);
       router.replace('/(tabs)');
     } catch (error) {
-      alert('Unable to register. Please try again.');
+      console.error("Registration error:", error.code, error.message);
+      alert(`Registration failed: ${error.message}`);
     }
   }
 

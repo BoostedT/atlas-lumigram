@@ -16,7 +16,7 @@ import { useAuth } from "@/components/AuthProvider";
 
 
 export default function AddPostScreen() {
-  const [image, setImage] = useState(null);
+  const [image, setImage] = useState<string | null>(null);
   const [caption, setCaption] = useState("");
   const auth = useAuth();
 
@@ -42,7 +42,7 @@ export default function AddPostScreen() {
   async function handleSave() {
     if (!image) return;
     const name = image?.split("/").pop() as string;
-    const {downloadUrl, metadata} = await storage.upload(image, name);
+    const { downloadUrl, metadata } = await storage.upload(image, name);
     console.log(downloadUrl);
 
     firestore.addPost({
@@ -62,7 +62,7 @@ export default function AddPostScreen() {
 
   return (
     <View style={styles.container}>
-     {/* Image Picker */}
+      {/* Image Picker */}
       <TouchableOpacity style={styles.imageBox} onPress={pickImage}>
         {image ? (
           <Image source={{ uri: image }} style={styles.image} />
