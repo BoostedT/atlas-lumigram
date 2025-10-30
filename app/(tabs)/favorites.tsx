@@ -30,7 +30,6 @@ export default function FavoritesScreen() {
 
   const PAGE_SIZE = 10;
 
-  // 🔹 Load first batch of favorites
   const loadFavorites = useCallback(async () => {
     if (!user) return;
     setLoading(true);
@@ -60,7 +59,6 @@ export default function FavoritesScreen() {
     }
   }, [user]);
 
-  // 🔹 Load more (pagination)
   const loadMore = async () => {
     if (loading || !hasMore || !lastVisible || !user) return;
     setLoading(true);
@@ -90,7 +88,6 @@ export default function FavoritesScreen() {
     }
   };
 
-  // 🔹 Pull-to-refresh
   const onRefresh = async () => {
     setRefreshing(true);
     await loadFavorites();
